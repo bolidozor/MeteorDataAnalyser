@@ -23,7 +23,7 @@ Dependencies:
 DHProcessor
 ===================
 
-[nbviewer](http://nbviewer.ipython.org/github/bolidozor/MeteorDataAnalyser/blob/master/iHProcessor.ipynb)
+[nbviewer](http://nbviewer.ipython.org/github/bolidozor/MeteorDataAnalyser/blob/dev/iDHProcessor.ipynb)
 
 Updated version of HProcessor. Views histograms for multiple stations as well as included observation times.
 
