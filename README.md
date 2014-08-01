@@ -18,3 +18,17 @@ Dependencies:
  * python2.7
  * ipython-notebook
  * pandas
+ * 
+ 
+DHProcessor
+===================
+
+[On nbviewer:](http://nbviewer.ipython.org/github/bolidozor/MeteorDataAnalyser/blob/master/iHProcessor.ipynb)
+
+Updated version of HProcessor. Views histograms for multiple stations as well as included observation times.
+
+Dependencies:
+------------- 
+ * python2.7
+ * ipython-notebook
+ * pandas
