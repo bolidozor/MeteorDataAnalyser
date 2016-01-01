@@ -139,10 +139,10 @@ def evalTSP(individual):
     return station_errors(met_params, timesteps, stations)
 
 toolbox.register("mate", tools.cxOnePoint)
-toolbox.register("mutate", tools.mutGaussian, mu = 0, sigma = (100000, 500000, 500000, 50000, 50000, 50000), indpb=1.0)
+toolbox.register("mutate", tools.mutGaussian, mu = 0, sigma = (500000, 500000, 500000, 50000, 50000, 50000), indpb=1.0)
 #toolbox.register("select", tools.selRandom)
-#toolbox.register("select", tools.selBest)
-toolbox.register("select", tools.selTournament, tournsize=3)
+toolbox.register("select", tools.selBest)
+#toolbox.register("select", tools.selTournament, tournsize=3)
 toolbox.register("evaluate", evalTSP)
 
 pop = toolbox.population(n=50)
@@ -154,7 +154,7 @@ stats.register("sum", np.sum)
 
 while True:
     #algorithms.eaSimple(pop, toolbox, 0.7, 0.5, 10, stats=stats, halloffame=hof, verbose=True)
-    pop, log = algorithms.eaMuPlusLambda(pop, toolbox, cxpb=0.5, mutpb=0.5, ngen=100, stats=stats, halloffame=hof, verbose=True, mu=10, lambda_=50)
+    pop, log = algorithms.eaMuPlusLambda(pop, toolbox, cxpb=0.5, mutpb=0.5, ngen=1000, stats=stats, halloffame=hof, verbose=True, mu=10, lambda_=50)
 
     print pop
     print hof
