@@ -7,7 +7,7 @@ from deap import tools
 import numpy as np
 import scipy.constants
 from Geocentric import Geocentric
-from scipy.interpolate import interp1d
+from scipy.interpolate import interp1d, UnivariateSpline
 
 geoC = Geocentric(6378137, 6356752.314)
 f0 = 143050000
@@ -15,7 +15,7 @@ c = scipy.constants.c
 trans_station_point = np.array(geoC.GeographicToGeocentric(47.347993, 5.515079, 190))
 
 def make_meteor():
-    ## initial meteor trajectory guess 
+    ## initial meteor trajectory guess (meteor created in the most probable meteor volume.)
     est_start_altitude = np.random.normal(100e3,20e3,1)
     est_stop_altitude = np.random.normal(60e3,20e3,1)
     
@@ -69,7 +69,7 @@ def estimate_dopplers(trajectory, timesteps, f0, trans_station, rec_station):
 
 def error_func(est_params, timesteps, stations):
     """
-    Returns difference between real and estimated meteor trajectory dopplers
+    Returns time difference between real and estimated meteor trajectory dopplers
     """
     from Geocentric import Geocentric
     geoC = Geocentric(6378137, 6356752.314)
@@ -83,13 +83,13 @@ def error_func(est_params, timesteps, stations):
 
     doppler_deviations = {}
     for station in stations:
-        doppler_deviation = np.zeros_like(station['doppler'])
+        doppler_deviation = np.zeros(station['doppler'].shape[0])
         rec_station_point = np.array(geoC.GeographicToGeocentric(station['latitude'], station['longitude'], station['elevation']))
         est_doppler = estimate_dopplers(est_points, timesteps, f0, trans_station_point, rec_station_point)
-        est_doppler_function = interp1d(est_doppler[1:,0], est_doppler[1:,1])
+        est_doppler_function = UnivariateSpline(est_doppler[1:,1], est_doppler[1:,0], check_finite = True) # make interpolation function of estimated dopplers. 
 
         for i in range(station['doppler'].shape[0]):  
-            doppler_deviation[i] = station['doppler'][:,0][i], (station['doppler'][:,1][i] - est_doppler_function(station['doppler'][:,0][i]))**2
+            doppler_deviation[i] = (station['doppler'][:,0][i] - est_doppler_function(station['doppler'][:,1][i]))**2
         
         doppler_deviations[station['name']] = doppler_deviation
         
@@ -103,24 +103,17 @@ def station_errors(met_params, timesteps, stations):
     doppler_errors = error_func(met_params, timesteps, stations)
     total_deviation = []
     for station in doppler_errors:
-        total_deviation.append(np.sum(doppler_errors[station][:,1]))
+        total_deviation.append(np.sum(doppler_errors[station]))
     return total_deviation
 
 def total_error(met_params, timesteps, stations):
-    """
-    Calculate total error value of estimated meteor params to every station signal. 
-    """    
-    doppler_errors = error_func(met_params, timesteps, stations)
-    total_deviation = 0
-    for station in doppler_errors:
-        total_deviation += np.sum(doppler_errors[station][:,1])
-    return total_deviation
+    return np.sum(station_errors(est_params, timesteps, stations))
 
 data_file = np.load("station_data.npz")
 timesteps = data_file['timesteps']
 stations = data_file['stations']
 
-creator.create("FitnessMin", base.Fitness, weights=(-1.0,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0,))
+creator.create("FitnessMin", base.Fitness, weights=(-1.0,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0))
 creator.create("Individual", array.array, typecode='d', fitness=creator.FitnessMin)
 
 toolbox = base.Toolbox()
@@ -155,8 +148,8 @@ stats.register("sum", np.sum)
 
 while True:
     #algorithms.eaSimple(pop, toolbox, 0.7, 0.5, 10, stats=stats, halloffame=hof, verbose=True)
-    #pop, log = algorithms.eaMuPlusLambda(pop, toolbox, cxpb=0.5, mutpb=0.5, ngen=1000, stats=stats, halloffame=hof, verbose=True, mu=10, lambda_=50)
-    pop, log = algorithms.eaMuCommaLambda(pop, toolbox, cxpb=0.5, mutpb=0.5, ngen=200, stats=stats, halloffame=hof, verbose=True, mu=10, lambda_=100)
+    pop, log = algorithms.eaMuPlusLambda(pop, toolbox, cxpb=0.5, mutpb=0.5, ngen=100, stats=stats, halloffame=hof, verbose=True, mu=10, lambda_=50)
+    #pop, log = algorithms.eaMuCommaLambda(pop, toolbox, cxpb=0.5, mutpb=0.5, ngen=200, stats=stats, halloffame=hof, verbose=True, mu=10, lambda_=100)
     #pop, log = algorithms.eaGenerateUpdate(toolbox, ngen=100, stats=stats, halloffame=hof, verbose=True)
 
     print pop
@@ -165,6 +158,7 @@ while True:
     est_params = np.array(hof[0])
     error_value = total_error(est_params, timesteps, stations)
     print error_value
+
 
     previous_parameters = np.load("estimated_parameters.npy")
     previous_error = total_error(previous_parameters, timesteps, stations)
