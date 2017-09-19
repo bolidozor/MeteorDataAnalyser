@@ -1,7 +1,7 @@
 # Experimental record viewer, recalculates the waterfall
 
 import numpy as np
-import Queue as queue
+from multiprocessing import Queue as queue
 import threading
 import scipy.io.wavfile
 import sys
@@ -10,13 +10,13 @@ import math
 
 def waterfallize(signal, bins):
     window = 0.5 * (1.0 - np.cos((2 * math.pi * np.arange(bins)) / bins))
-    segment = bins / 2
-    nsegments = int(len(signal) / segment)
-    m = np.repeat(np.reshape(signal[0:segment * nsegments], (nsegments, segment)), 2, axis=0)
-    t = np.reshape(m[1:len(m) - 1], (nsegments - 1, bins))
+    segment = int(bins / 2)
+    nsegments = int(len(signal) / int(segment))
+    m = np.repeat(np.reshape(signal[0:int(segment * nsegments)], (int(nsegments), int(segment))), 2, axis=0)
+    t = np.reshape(m[1:int(len(m) - 1)], (int(nsegments - 1), int(bins)))
     img = np.multiply(t, window)
     wf = np.log(np.abs(np.fft.fft(img)))
-    return np.concatenate((wf[:, bins / 2:bins], wf[:, 0:bins / 2]), axis=1)
+    return np.concatenate((wf[:, int(bins / 2):int(bins)], wf[:, 0:int(bins / 2)]), axis=1)
 
 '''class RecordViewer():
     def __init__(self, signal, sample_rate=None):
