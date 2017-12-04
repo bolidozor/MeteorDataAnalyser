@@ -38,7 +38,7 @@ def make_meteor():
 def make_deap_meteor():
     return array.array('d',make_meteor())
 
-def estimate_dopplers(trajectory, timesteps, f0, trans_station, rec_station):
+def estimate_dopplers_old(trajectory, timesteps, f0, trans_station, rec_station):
     '''
         Returns array of dopplers for given transmitter to receiver position and defined frequency and known trajectory.
     '''
@@ -65,6 +65,39 @@ def estimate_dopplers(trajectory, timesteps, f0, trans_station, rec_station):
         speed = met_rec_speed/t
         f2 = (c/(c - speed) * f1)
         doppler[i] = np.array([timesteps[i], f2-f0])
+    return doppler
+
+def estimate_dopplers(trajectory, timesteps, f0, trans_station, rec_station):
+    # alternative algorithm
+    '''
+        Returns array of dopplers for given transmitter to receiver position and defined frequency and known trajectory.
+    '''
+    doppler = np.empty([trajectory.shape[0], 2])
+    t = timesteps[1] - timesteps[0]
+
+    for i in range(trajectory.shape[0]):
+        try: 
+            # angle transmitter - meteor - reciever
+            ba = trans_station-trajectory[i]
+            bc = rec_station-trajectory[i]
+            TMR = np.arccos(np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc)))
+
+            # angle trajectory - meteor - reciever
+            ba = trajectory[i+1]-trajectory[i]
+            bc = rec_station-trajectory[i]
+            VMR = np.arccos(np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc)))
+            
+            # angle trajectory - meteor - axis (of angle transmitter-meter-reciever)
+            VMA = VMR-TMR/2
+            
+            # radial speed of meteor to axis of TMR angle (Transmitter - meteor - reciever)
+            radial_speed = np.cos(VMA)*(np.linalg.norm(trajectory[i]-trajectory[i+1])/t)
+            doppler_offset = (radial_speed/c)*f0
+            
+        except Exception as e:
+            pass
+
+        doppler[i] = np.array([timesteps[i], doppler_offset])
     return doppler
 
 def error_func(est_params, timesteps, stations):
@@ -152,12 +185,12 @@ while True:
     #pop, log = algorithms.eaMuCommaLambda(pop, toolbox, cxpb=0.5, mutpb=0.5, ngen=200, stats=stats, halloffame=hof, verbose=True, mu=10, lambda_=100)
     #pop, log = algorithms.eaGenerateUpdate(toolbox, ngen=100, stats=stats, halloffame=hof, verbose=True)
 
-    print pop
-    print hof
+    print(pop)
+    print(hof)
 
     est_params = np.array(hof[0])
     error_value = total_error(est_params, timesteps, stations)
-    print error_value
+    print(error_value)
 
 
     previous_parameters = np.load("estimated_parameters.npy")
@@ -167,7 +200,7 @@ while True:
     else:
         pop = toolbox.population(n=50)
 
-    print previous_error
-    print "next cycle started..."
+    print(previous_error)
+    print("next cycle started...")
 
 
